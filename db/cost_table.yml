@@ -1,0 +1,13 @@
+us-east-1a:
+  t1.micro: 0.020
+  m1.small: 0.080
+  m1.medium: 0.160
+  m1.large: 0.320
+  m1.xlarge: 0.640
+
+us-east-1b:
+  t1.micro: 0.020
+  m1.small: 0.080
+  m1.medium: 0.160
+  m1.large: 0.320
+  m1.xlarge: 0.640

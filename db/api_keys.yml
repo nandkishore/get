@@ -1,0 +1,8 @@
+## Please add your AWS access_key_id and secret_access_key below in the following format
+##
+##   access_key_id: "your_access_key_id"
+##   secret_access_key: "your_secret_access_key"
+##
+
+access_key_id: ""
+secret_access_key: ""

@@ -1,0 +1,5 @@
+= get
+
+Generate this with
+    get rdoc
+After you have described your command line interface

@@ -1,0 +1,13 @@
+development:
+  adapter: mysql
+  database: get_development
+  username: root
+  password: 
+  timeout: 5000
+
+test:
+  adapter: mysql
+  database: get_test
+  username: root
+  password: 
+  timeout: 5000

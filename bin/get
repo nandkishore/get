@@ -1,0 +1,248 @@
+#!/usr/bin/env ruby
+# 1.9 adds realpath to resolve symlinks; 1.8 doesn't
+# have this method, so we add it so we get resolved symlinks
+# and compatibility
+unless File.respond_to? :realpath
+  class File #:nodoc:
+    def self.realpath path
+      return realpath(File.readlink(path)) if symlink?(path)
+      path
+    end
+  end
+end
+$: << File.expand_path(File.dirname(File.realpath(__FILE__)) + '/../lib')
+require 'rubygems'
+require 'gli'
+require 'get_version'
+require 'aws-sdk'
+require 'aws/cloud_watch'
+require 'aws/cloud_watch/ec2'
+require "yaml" 
+require 'active_record' 
+require 'tasks/standalone_migrations'
+require 'delayed_job'
+require 'date'
+
+
+class << DateTime
+  Time::DATE_FORMATS[:asci] = "%m-%d-%Y"
+
+  def to_formatted_s(format = :default)
+    return to_default_s unless formatter = ::Time::DATE_FORMATS[format]
+    formatter.respond_to?(:call) ? formatter.call(self).to_s : strftime(formatter)
+  end
+end
+
+Dir[File.dirname(__FILE__) + '/../lib/*.rb'].each do |file| 
+  require File.basename(file, File.extname(file))
+end
+
+config = YAML.load_file("db/config.yml")["development"]
+api_keys = YAML.load_file("db/api_keys.yml")
+#ActiveRecord::Base.logger = Logger.new(STDOUT)
+ActiveRecord::Base.establish_connection(config)
+Delayed::Worker.backend = :active_record
+
+include GLI
+
+program_desc 'Interact with AWS API to get Run, Cost & Utilization records and generate reports based on cost, utilization etc'
+
+version Get::VERSION
+
+desc 'Connects to the API and saves Run, Cost & Utilization records in the database.'
+
+command :instances do |c|
+  
+  c.action do |global_options,options,args|
+    
+    ec2 = AWS::EC2.new(:access_key_id => api_keys["access_key_id"], 
+                       :secret_access_key => api_keys["secret_access_key"])
+    
+    system "rake jobs:work --trace &" unless `grep rake jobs:work` != "" 
+                                           ## Starts the rake task to run delayed jobs
+    Run.connect
+                                           ## Request the API for records and starts a delayed job
+  end
+end
+
+desc 'Generates report'
+arg_name 'Describe arguments to report here'
+command :report do |c|
+
+  c.desc 'Time Period of the report'
+  c.default_value 'day'
+  c.arg_name 'day/week/month'
+  c.flag 'time-period'
+  
+  c.desc 'Start-time of the report'
+  c.default_value "06-14-2012"
+  c.arg_name 'date in mm-dd-yyyy format'
+  c.flag 'start-time'
+
+  c.desc 'End-time of the report'
+  c.default_value "06-15-2012"
+  c.arg_name 'date in mm-dd-yyyy format'
+  c.flag 'end-time'
+  
+  c.desc 'Variable of the report - Cost or Utilization'
+  c.default_value 'cost'
+  c.arg_name 'cost/utilization'
+  c.flag 'variable'
+  
+  c.desc 'Attribute, by which report will be generated, instance-id/flavor/region/user defined tags'
+  c.default_value 'instance-id'
+  c.arg_name 'instance-id/flavor/region/user defined tags'
+  c.flag 'attribute'
+  
+  
+  c.action do |global_options,options,args|
+    start_time = DateTime.strptime(options[:"start-time"], '%m-%d-%Y')
+    end_time = DateTime.strptime(options[:"end-time"], '%m-%d-%Y')
+    report_hash = Hash.new
+    
+    if options[:variable] == 'cost'
+            
+      costs = Cost.all(:conditions =>[ "`from` >= :start_date AND `to` <= :end_date",
+                                      {:start_date => start_time, :end_date => end_time}])
+      cost_hash = Hash.new
+      if options[:"time-period"]=="day"
+        cost_hash = Hash.new                          ## Forms a hash of costs grouped per day
+        costs.each do |cost|
+          date_key =  cost.from.strftime("%m-%d-%Y")
+          
+          cost_hash[date_key] = Hash.new if cost_hash[date_key].nil?
+          cost_hash[date_key][cost.instance_id] = 0.00 if cost_hash[date_key][cost.instance_id].nil?
+          cost_hash[date_key][cost.instance_id] = cost_hash[date_key][cost.instance_id] + cost.cost                                             
+        end
+      elsif options[:"time-period"]=="week"      ## Forms a hash of costs grouped per week
+        
+        costs.each do |cost|                     ## Computes the start of the week for a give 
+                                                 ## start-time, which is used as key for hash 
+          date_key =  cost.from.strftime("%m-%d-%Y")
+          diff =  DateTime.strptime(date_key, '%m-%d-%Y') - start_time
+          multiplier = (diff.to_i/7).to_i
+          key =  start_time + (multiplier * 7).to_i
+          date_key = key.to_formatted_s(:asci)
+          cost_hash[date_key] = Hash.new if cost_hash[date_key].nil?
+          cost_hash[date_key][cost.instance_id] = 0.00 if cost_hash[date_key][cost.instance_id].nil?
+          cost_hash[date_key][cost.instance_id] = cost_hash[date_key][cost.instance_id] + cost.cost                                                ## Forms a hash of costs grouped by Week
+        end
+      elsif options[:"time-period"]=="month"  
+                                                ## Computes the start of the month for a give 
+                                                 ## start-time, which is used as key for hash 
+        costs.each do |cost|
+          date_key =  cost.from.strftime("%m-%d-%Y")
+          diff =  DateTime.strptime(date_key, '%m-%d-%Y') - start_time
+          multiplier = (diff.to_i/30).to_i
+          key =  start_time + (multiplier * 30).to_i
+          date_key = key.to_formatted_s(:asci)
+          cost_hash[date_key] = Hash.new if cost_hash[date_key].nil?
+
+          cost_hash[date_key][cost.instance_id] = 0.00 if cost_hash[date_key][cost.instance_id].nil?
+          cost_hash[date_key][cost.instance_id] = cost_hash[date_key][cost.instance_id] + cost.cost
+        end
+      end
+      report_hash = cost_hash
+      
+    elsif options[:variable] == 'utilization'          ## Queries Database to get Network and 
+                                                       ## CPU Utilization records
+      
+      utilizations = Utilization.all(:conditions =>[ "`from` >= :start_date AND `to` <= :end_date", {:start_date => start_time, :end_date => end_time}])
+
+      utilization_hash = Hash.new                    ## Forms utilization hash grouped per day
+      if options[:"time-period"]=="day"
+        utilizations.each do |utilization|
+          date_key =  utilization.from.strftime("%m-%d-%Y")
+          utilization_hash[date_key] = Hash.new if utilization_hash[date_key].nil?
+          utilization_hash[date_key][utilization.instance_id] = Hash.new if utilization_hash[date_key][utilization.instance_id].nil?
+          utilization_hash[date_key][utilization.instance_id]["network"] = 0.00 if utilization_hash[date_key][utilization.instance_id]["network"].nil?
+          utilization_hash[date_key][utilization.instance_id]["network"] = utilization_hash[date_key][utilization.instance_id]["network"] + utilization.network
+          utilization_hash[date_key][utilization.instance_id]["cpu"] = Array.new if utilization_hash[date_key][utilization.instance_id]["cpu"].nil?
+          utilization_hash[date_key][utilization.instance_id]["cpu"] << utilization.cpu
+        end
+      elsif options[:"time-period"]=="week"           ## Forms utilization hash grouped per week
+                                                      
+                                             
+        utilizations.each do |utilization|        
+                                                 ## Computes the start of the week for a give 
+                                                 ## start-time, which is used as key for hash 
+          
+          date_key =  utilization.from.strftime("%m-%d-%Y")
+          diff =  DateTime.strptime(date_key, '%m-%d-%Y') - start_time
+          multiplier = (diff.to_i/7).to_i
+          key =  start_time + (multiplier * 7).to_i
+          date_key = key.to_formatted_s(:asci)
+          utilization_hash[date_key] = Hash.new if utilization_hash[date_key].nil?
+          utilization_hash[date_key][utilization.instance_id] = Hash.new if utilization_hash[date_key][utilization.instance_id].nil?
+          utilization_hash[date_key][utilization.instance_id]["network"] = 0.00 if utilization_hash[date_key][utilization.instance_id]["network"].nil?
+          utilization_hash[date_key][utilization.instance_id]["network"] = utilization_hash[date_key][utilization.instance_id]["network"] + utilization.network
+          utilization_hash[date_key][utilization.instance_id]["cpu"] = Array.new if utilization_hash[date_key][utilization.instance_id]["cpu"].nil?
+          utilization_hash[date_key][utilization.instance_id]["cpu"] << utilization.cpu
+        end
+      elsif options[:"time-period"]=="month"
+                                                 ## Computes the start of the month for a give 
+                                                 ## start-time, which is used as key for hash 
+        utilizations.each do |utilization|
+          date_key =  utilization.from.strftime("%m-%d-%Y")
+          diff =  DateTime.strptime(date_key, '%m-%d-%Y') - start_time
+          multiplier = (diff.to_i/30).to_i
+          key =  start_time + (multiplier * 30).to_i
+          date_key = key.to_formatted_s(:asci)
+          utilization_hash[date_key] = Hash.new if utilization_hash[date_key].nil?
+          utilization_hash[date_key][utilization.instance_id] = Hash.new if utilization_hash[date_key][utilization.instance_id].nil?
+          utilization_hash[date_key][utilization.instance_id]["network"] = 0.00 if utilization_hash[date_key][utilization.instance_id]["network"].nil?
+          utilization_hash[date_key][utilization.instance_id]["network"] = utilization_hash[date_key][utilization.instance_id]["network"] + utilization.network
+          utilization_hash[date_key][utilization.instance_id]["cpu"] = Array.new if utilization_hash[date_key][utilization.instance_id]["cpu"].nil?
+          utilization_hash[date_key][utilization.instance_id]["cpu"] << utilization.cpu
+        end
+      end
+      report_hash = utilization_hash
+    end
+    
+    runs = Run.all                            ## Computes hash of attributes and tags associated
+    attributes_hash = Hash.new                ## to each instance
+    runs.each do |run|
+      attributes_hash[run.instance_id] = Hash.new if attributes_hash[run.instance_id].nil?
+      attributes_hash[run.instance_id]["flavor"] = run.instance_flavor
+      attributes_hash[run.instance_id]["region"] = run.region
+      run.tags.each do |tag|
+        attributes_hash[run.instance_id][tag.key] = tag.value
+        end
+    end                                       ## Prints report on the console
+    
+    puts "DATE              COST         #{options[:attribute].upcase}" if options[:variable] == 'cost'
+    puts "DATE             NETWORK         CPU        #{options[:attribute].upcase}" if options[:variable] == 'utilization'
+    report_hash = report_hash.sort_by { |k, v| k}
+    report_hash.each do |date,value|
+      value.each do |instance_id, attributes|
+        attribute = ""
+        if options[:attribute] != 'instance-id'
+          attribute = attributes_hash[instance_id][options[:attribute]] if !attributes_hash[instance_id].nil?
+        else
+          attribute = instance_id
+        end
+        puts "#{date}       #{attributes}       #{attribute}" if options[:variable] == 'cost'
+        
+        if options[:variable] == 'utilization'
+          avg_cpu = 0
+          attributes["cpu"].each { |a| avg_cpu+=a }
+          puts "#{date}       #{attributes["network"]}         #{avg_cpu/attributes["cpu"].length}        #{attribute}" 
+        end
+      end
+    end
+  end
+end
+
+pre do |global,command,options,args|
+  true
+end
+
+post do |global,command,options,args|
+end
+
+on_error do |exception|
+  true
+end
+
+exit GLI.run(ARGV)
+

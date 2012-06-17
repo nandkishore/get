@@ -1,0 +1,66 @@
+GIT
+  remote: https://github.com/inscitiv/aws-sdk-cloudwatch
+  revision: 2b6bd41b8b8c704e6b6ad86b68a7c88f8a92585d
+  specs:
+    aws-sdk-cloudwatch (0.0.4)
+      aws-sdk (~> 1.3, >= 1.3.9)
+
+PATH
+  remote: .
+  specs:
+    get (0.0.1)
+      gli
+
+GEM
+  remote: http://rubygems.org/
+  remote: http://rubygems.org/
+  remote: http://gemcutter.org/
+  remote: http://rubygems.org/
+  remote: http://gems.rubyforge.org/
+  specs:
+    activerecord (2.3.5)
+      activesupport (= 2.3.5)
+    activesupport (2.3.5)
+    aws-sdk (1.5.3)
+      httparty (~> 0.7)
+      json (~> 1.4)
+      nokogiri (>= 1.4.4)
+      uuidtools (~> 2.1)
+    daemons (1.1.8)
+    delayed_job (2.0.6)
+      daemons
+    gli (1.6.0)
+    httparty (0.8.3)
+      multi_json (~> 1.0)
+      multi_xml
+    json (1.7.3)
+    multi_json (1.3.6)
+    multi_xml (0.5.1)
+    mysql (2.8.1)
+    nokogiri (1.5.4)
+    rake (0.9.2)
+    rdoc (3.12)
+      json (~> 1.4)
+    rufus-scheduler (2.0.16)
+      tzinfo (>= 0.3.23)
+    standalone_migrations (0.4.11)
+      activerecord
+      rake
+    tzinfo (0.3.33)
+    uuidtools (2.1.2)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  activerecord (= 2.3.5)
+  aws-sdk
+  aws-sdk-cloudwatch!
+  daemons
+  delayed_job (~> 2.0.4)
+  get!
+  mysql
+  rake
+  rdoc
+  rufus-scheduler
+  standalone_migrations (< 1.0.1)
