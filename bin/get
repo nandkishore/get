@@ -58,9 +58,13 @@ command :instances do |c|
     ec2 = AWS::EC2.new(:access_key_id => api_keys["access_key_id"], 
                        :secret_access_key => api_keys["secret_access_key"])
     
-    system "rake jobs:work --trace &" unless `grep rake jobs:work` != "" 
-                                           ## Starts the rake task to run delayed jobs
-    Run.connect
+    #system "rake jobs:work --trace &" unless `grep rake jobs:work` != "" 
+                                           ## Commenting out to Start the rake task manually(Daemon to run delayed jobs)
+    if Delayed::Job.all.blank?
+      Run.connect
+    else
+      puts "Background Job already in queue"
+    end 
                                            ## Request the API for records and starts a delayed job
   end
 end
