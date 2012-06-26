@@ -39,8 +39,8 @@ class Run < ActiveRecord::Base
               run.save!
               Run.add_tags(run.id, run.instance_id)
             end 
-            Cost.compute_cost(@run_record.instance_id, @run_record.region, @run_record.instance_flavor)
-            Utilization.add(@run_record.instance_id)
+            Cost.compute_cost(@run_record.instance_id, @run_record.region, @run_record.instance_flavor, @run_record.id)
+            Utilization.add(@run_record.instance_id, @run_record.id)
           else 
             if !(run == run_records.first) || Run.check_for_change_in_tags(run_records.first)  
                                                      ## Check for Change in Attributes or Tags, 
@@ -51,8 +51,8 @@ class Run < ActiveRecord::Base
               run.save!
               Run.add_tags(run.id, run.instance_id)
             end    
-            Cost.compute_cost(run_records.first.instance_id, run_records.first.region, run_records.first.instance_flavor)
-            Utilization.add(run_records.first.instance_id)
+            Cost.compute_cost(run_records.first.instance_id, run_records.first.region, run_records.first.instance_flavor, run_records.first.id)
+            Utilization.add(run_records.first.instance_id, run_records.first.id)
           end
           @run_record = nil
         end
