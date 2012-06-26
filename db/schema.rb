@@ -9,15 +9,24 @@
 #
 # It's strongly recommended to check this file into your version control system.
 
-ActiveRecord::Schema.define(:version => 20120612221304) do
+ActiveRecord::Schema.define(:version => 20120625152104) do
+
+  create_table "Person", :force => true do |t|
+    t.string   "first_name"
+    t.string   "last_name"
+    t.integer  "age"
+    t.datetime "created_at"
+    t.datetime "updated_at"
+  end
 
   create_table "costs", :force => true do |t|
     t.string   "instance_id", :null => false
     t.float    "cost"
     t.datetime "from"
     t.datetime "to"
-    t.datetime "created_at"
-    t.datetime "updated_at"
+    t.datetime "created_at",  :null => false
+    t.datetime "updated_at",  :null => false
+    t.integer  "run_id",      :null => false
   end
 
   create_table "delayed_jobs", :force => true do |t|
@@ -40,16 +49,16 @@ ActiveRecord::Schema.define(:version => 20120612221304) do
     t.string   "region"
     t.string   "instance_state"
     t.string   "instance_flavor"
-    t.datetime "created_at"
-    t.datetime "updated_at"
+    t.datetime "created_at",      :null => false
+    t.datetime "updated_at",      :null => false
   end
 
   create_table "tags", :force => true do |t|
     t.integer  "run_id",     :null => false
     t.string   "key"
     t.string   "value"
-    t.datetime "created_at"
-    t.datetime "updated_at"
+    t.datetime "created_at", :null => false
+    t.datetime "updated_at", :null => false
   end
 
   create_table "utilizations", :force => true do |t|
@@ -58,8 +67,9 @@ ActiveRecord::Schema.define(:version => 20120612221304) do
     t.float    "network"
     t.datetime "from"
     t.datetime "to"
-    t.datetime "created_at"
-    t.datetime "updated_at"
+    t.datetime "created_at",  :null => false
+    t.datetime "updated_at",  :null => false
+    t.integer  "run_id",      :null => false
   end
 
 end
