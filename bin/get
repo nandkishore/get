@@ -105,101 +105,70 @@ command :report do |c|
     report_hash = Hash.new
     
     if options[:variable] == 'cost'
-            
       costs = Cost.all(:conditions =>[ "`from` >= :start_date AND `to` <= :end_date",
-                                      {:start_date => start_time, :end_date => end_time}])
-      cost_hash = Hash.new
-      if options[:"time-period"]=="day"
-        cost_hash = Hash.new                          ## Forms a hash of costs grouped per day
-        costs.each do |cost|
+                                       {:start_date => start_time, :end_date => end_time}])
+      cost_hash = Hash.new                          ## Forms a hash of costs grouped per day/week/month
+      costs.each do |cost|
+
+        if options[:"time-period"]=="day"
           date_key =  cost.from.strftime("%m-%d-%Y")
-          
-          cost_hash[date_key] = Hash.new if cost_hash[date_key].nil?
-          cost_hash[date_key][cost.run_id] = 0.00 if cost_hash[date_key][cost.run_id].nil?
-          cost_hash[date_key][cost.run_id] = cost_hash[date_key][cost.run_id] + cost.cost
-        end
-      elsif options[:"time-period"]=="week"      ## Forms a hash of costs grouped per week
-        
-        costs.each do |cost|                     ## Computes the start of the week for a give 
-                                                 ## start-time, which is used as key for hash 
+
+        elsif options[:"time-period"]=="week"      ## Computes the start of the week for a give 
+                                                   ## start-time, which is used as key for hash 
           date_key =  cost.from.strftime("%m-%d-%Y")
           diff =  DateTime.strptime(date_key, '%m-%d-%Y') - start_time
           multiplier = (diff.to_i/7).to_i
           key =  start_time + (multiplier * 7).to_i
           date_key = key.to_formatted_s(:asci)
-          cost_hash[date_key] = Hash.new if cost_hash[date_key].nil?
-          cost_hash[date_key][cost.run_id] = 0.00 if cost_hash[date_key][cost.run_id].nil?
-          cost_hash[date_key][cost.run_id] = cost_hash[date_key][cost.run_id] + cost.cost
-                                                ## Forms a hash of costs grouped by Week
-        end
-      elsif options[:"time-period"]=="month"  
-                                                ## Computes the start of the month for a give 
-                                                ## start-time, which is used as key for hash 
-        costs.each do |cost|
+
+        elsif options[:"time-period"]=="month"    ## Computes the start of the month for a give 
+                                                  ## start-time, which is used as key for hash 
           date_key =  cost.from.strftime("%m-%d-%Y")
           diff =  DateTime.strptime(date_key, '%m-%d-%Y') - start_time
           multiplier = (diff.to_i/30).to_i
           key =  start_time + (multiplier * 30).to_i
           date_key = key.to_formatted_s(:asci)
-          cost_hash[date_key] = Hash.new if cost_hash[date_key].nil?
 
-          cost_hash[date_key][cost.run_id] = 0.00 if cost_hash[date_key][cost.run_id].nil?
-          cost_hash[date_key][cost.run_id] = cost_hash[date_key][cost.run_id] + cost.cost
         end
+        cost_hash[date_key] = Hash.new if cost_hash[date_key].nil?
+        cost_hash[date_key][cost.run_id] = 0.00 if cost_hash[date_key][cost.run_id].nil?
+        cost_hash[date_key][cost.run_id] = cost_hash[date_key][cost.run_id] + cost.cost
       end
       report_hash = cost_hash
-      
+    
     elsif options[:variable] == 'utilization'          ## Queries Database to get Network and 
                                                        ## CPU Utilization records
       
       utilizations = Utilization.all(:conditions =>[ "`from` >= :start_date AND `to` <= :end_date", {:start_date => start_time, :end_date => end_time}])
-
-      utilization_hash = Hash.new                    ## Forms utilization hash grouped per day
-      if options[:"time-period"]=="day"
-        utilizations.each do |utilization|
+      
+      utilization_hash = Hash.new                ## Forms utilization hash grouped per day/week/month
+      utilizations.each do |utilization|
+        if options[:"time-period"]=="day"
           date_key =  utilization.from.strftime("%m-%d-%Y")
-          utilization_hash[date_key] = Hash.new if utilization_hash[date_key].nil?
-          utilization_hash[date_key][utilization.run_id] = Hash.new if utilization_hash[date_key][utilization.run_id].nil?
-          utilization_hash[date_key][utilization.run_id]["network"] = 0.00 if utilization_hash[date_key][utilization.run_id]["network"].nil?
-          utilization_hash[date_key][utilization.run_id]["network"] = utilization_hash[date_key][utilization.run_id]["network"] + utilization.network
-          utilization_hash[date_key][utilization.run_id]["cpu"] = Array.new if utilization_hash[date_key][utilization.run_id]["cpu"].nil?
-          utilization_hash[date_key][utilization.run_id]["cpu"] << utilization.cpu
-        end
-      elsif options[:"time-period"]=="week"           ## Forms utilization hash grouped per week
-                                                      
-                                             
-        utilizations.each do |utilization|        
-                                                 ## Computes the start of the week for a give 
+
+        elsif options[:"time-period"]=="week"    ## Computes the start of the week for a give 
                                                  ## start-time, which is used as key for hash 
-          
           date_key =  utilization.from.strftime("%m-%d-%Y")
           diff =  DateTime.strptime(date_key, '%m-%d-%Y') - start_time
           multiplier = (diff.to_i/7).to_i
           key =  start_time + (multiplier * 7).to_i
           date_key = key.to_formatted_s(:asci)
-          utilization_hash[date_key] = Hash.new if utilization_hash[date_key].nil?
-          utilization_hash[date_key][utilization.run_id] = Hash.new if utilization_hash[date_key][utilization.run_id].nil?
-          utilization_hash[date_key][utilization.run_id]["network"] = 0.00 if utilization_hash[date_key][utilization.run_id]["network"].nil?
-          utilization_hash[date_key][utilization.run_id]["network"] = utilization_hash[date_key][utilization.run_id]["network"] + utilization.network
-          utilization_hash[date_key][utilization.run_id]["cpu"] = Array.new if utilization_hash[date_key][utilization.run_id]["cpu"].nil?
-          utilization_hash[date_key][utilization.run_id]["cpu"] << utilization.cpu
-        end
-      elsif options[:"time-period"]=="month"
-                                                 ## Computes the start of the month for a give 
+
+        elsif options[:"time-period"]=="month"   ## Computes the start of the month for a give 
                                                  ## start-time, which is used as key for hash 
-        utilizations.each do |utilization|
           date_key =  utilization.from.strftime("%m-%d-%Y")
           diff =  DateTime.strptime(date_key, '%m-%d-%Y') - start_time
           multiplier = (diff.to_i/30).to_i
           key =  start_time + (multiplier * 30).to_i
           date_key = key.to_formatted_s(:asci)
-          utilization_hash[date_key] = Hash.new if utilization_hash[date_key].nil?
-          utilization_hash[date_key][utilization.run_id] = Hash.new if utilization_hash[date_key][utilization.run_id].nil?
-          utilization_hash[date_key][utilization.run_id]["network"] = 0.00 if utilization_hash[date_key][utilization.run_id]["network"].nil?
-          utilization_hash[date_key][utilization.run_id]["network"] = utilization_hash[date_key][utilization.run_id]["network"] + utilization.network
-          utilization_hash[date_key][utilization.run_id]["cpu"] = Array.new if utilization_hash[date_key][utilization.run_id]["cpu"].nil?
-          utilization_hash[date_key][utilization.run_id]["cpu"] << utilization.cpu
         end
+
+        utilization_hash[date_key] = Hash.new if utilization_hash[date_key].nil?
+        utilization_hash[date_key][utilization.run_id] = Hash.new if utilization_hash[date_key][utilization.run_id].nil?
+        utilization_hash[date_key][utilization.run_id]["network"] = 0.00 if utilization_hash[date_key][utilization.run_id]["network"].nil?
+        utilization_hash[date_key][utilization.run_id]["network"] = utilization_hash[date_key][utilization.run_id]["network"] + utilization.network
+        utilization_hash[date_key][utilization.run_id]["cpu"] = Array.new if utilization_hash[date_key][utilization.run_id]["cpu"].nil?
+        utilization_hash[date_key][utilization.run_id]["cpu"] << utilization.cpu
       end
       report_hash = utilization_hash
     end
