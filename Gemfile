@@ -12,3 +12,5 @@ gem "rufus-scheduler"
 gem "daemons"
 gem 'delayed_job', '~>2.0.4'
 gem 'activerecord', '2.3.5'
+gem 'rspec'
+gem 'aruba'

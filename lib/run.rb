@@ -66,7 +66,7 @@ class Run < ActiveRecord::Base
     end
 
     def connect
-      api_keys = YAML.load_file("db/api_keys.yml")
+      api_keys = YAML.load_file("#{File.expand_path(File.dirname(__FILE__) + '/../db/api_keys.yml')}")
       @ec2 = AWS::EC2.new(:access_key_id => api_keys["access_key_id"], 
                          :secret_access_key => api_keys["secret_access_key"])
       
@@ -87,7 +87,7 @@ class Run < ActiveRecord::Base
     end
     
     def check_for_change_in_tags(run)
-      api_keys = YAML.load_file("db/api_keys.yml")
+      api_keys = YAML.load_file("#{File.expand_path(File.dirname(__FILE__) + '/../db/api_keys.yml')}")
       ec2 = AWS::EC2.new(:access_key_id => api_keys["access_key_id"], 
                          :secret_access_key => api_keys["secret_access_key"])
       

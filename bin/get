@@ -36,11 +36,11 @@ end
 Dir[File.dirname(__FILE__) + '/../lib/*.rb'].each do |file| 
   require File.basename(file, File.extname(file))
 end
-
-config = YAML.load_file("db/config.yml")["development"]
-api_keys = YAML.load_file("db/api_keys.yml")
+ENV['env'] = 'development' if ENV['env'].nil?
+config = YAML.load_file("#{File.expand_path(File.dirname(__FILE__) + '/../db/config.yml')}")[ENV['env']]
+api_keys = YAML.load_file("#{File.expand_path(File.dirname(__FILE__) + '/../db/api_keys.yml')}")
 #ActiveRecord::Base.logger = Logger.new(STDOUT)
-ActiveRecord::Base.establish_connection(config)
+ActiveRecord::Base.establish_connection(config) 
 Delayed::Worker.backend = :active_record
 
 include GLI

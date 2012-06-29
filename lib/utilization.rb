@@ -10,7 +10,7 @@ class Utilization < ActiveRecord::Base
                                                ## Connects to the CloudWatch API to get 
   def self.add(instance_id, run_id)                    ## CPU and Network Utilization each hour 
 
-    api_keys = YAML.load_file("db/api_keys.yml")
+    api_keys = YAML.load_file("#{File.expand_path(File.dirname(__FILE__) + '/../db/api_keys.yml')}")
     ec2 = AWS::EC2.new(:access_key_id => api_keys["access_key_id"], 
                        :secret_access_key => api_keys["secret_access_key"])
     

@@ -22,12 +22,6 @@ describe Run do
     value.should be_true
   end
 
-  it "should save Run Record" do 
-    Run.connect
-    test_result = Run.find(:all)
-    test_result.should_not be_nil 
-  end
-
   it "should return true if both objects are same" do
     run_record_1 = Run.new(:instance_id => INSTANCE_ID, :region => REGION, :instance_state => INSTANCE_STATE, :instance_flavor => INSTANCE_FLAVOR, :start_time => START_TIME, :stop_time => STOP_TIME)
     run_record_2 = Run.new(:instance_id => INSTANCE_ID, :region => REGION, :instance_state => INSTANCE_STATE, :instance_flavor => INSTANCE_FLAVOR, :start_time => START_TIME, :stop_time => STOP_TIME)

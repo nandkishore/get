@@ -24,8 +24,8 @@ ActiveRecord::Schema.define(:version => 20120625152104) do
     t.float    "cost"
     t.datetime "from"
     t.datetime "to"
-    t.datetime "created_at",  :null => false
-    t.datetime "updated_at",  :null => false
+    t.datetime "created_at"
+    t.datetime "updated_at"
     t.integer  "run_id",      :null => false
   end
 
@@ -49,16 +49,16 @@ ActiveRecord::Schema.define(:version => 20120625152104) do
     t.string   "region"
     t.string   "instance_state"
     t.string   "instance_flavor"
-    t.datetime "created_at",      :null => false
-    t.datetime "updated_at",      :null => false
+    t.datetime "created_at"
+    t.datetime "updated_at"
   end
 
   create_table "tags", :force => true do |t|
     t.integer  "run_id",     :null => false
     t.string   "key"
     t.string   "value"
-    t.datetime "created_at", :null => false
-    t.datetime "updated_at", :null => false
+    t.datetime "created_at"
+    t.datetime "updated_at"
   end
 
   create_table "utilizations", :force => true do |t|
@@ -67,8 +67,8 @@ ActiveRecord::Schema.define(:version => 20120625152104) do
     t.float    "network"
     t.datetime "from"
     t.datetime "to"
-    t.datetime "created_at",  :null => false
-    t.datetime "updated_at",  :null => false
+    t.datetime "created_at"
+    t.datetime "updated_at"
     t.integer  "run_id",      :null => false
   end
 
