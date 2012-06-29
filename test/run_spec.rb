@@ -1,13 +1,4 @@
-require 'rubygems'
-require 'active_record'
-
-config = YAML.load_file("db/config.yml")["test"]
-ActiveRecord::Base.establish_connection(config)
 require File.dirname(__FILE__) + '/spec_helper.rb'
-Dir[File.dirname(__FILE__) + '/../lib/*.rb'].each do |file| 
-  require file
-end
-
 
 describe Run do
 
