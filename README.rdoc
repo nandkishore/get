@@ -1,6 +1,54 @@
 = get
 
-Describe your project here
+Ruby Application to 
+1) Connect to AWS API and fetch/save Run, Cost & Utilization records 
+2) Generate Reports based on Cost, Utilization
 
-:include:get.rdoc
+Steps to set up/run the application: 
 
+1) Take a clone of the above mentioned repository. 
+
+2) Install the required gems via bundler (bundle install). 
+
+3) Configure database 
+  Add configurations to db/config.yml file. 
+  Run rake db:create & rake db:create DB=test (test database) to create the database. 
+  Run rake db:migrate & rake db:migrate DB=test to run the migrations. 
+
+4)  Add AWS API Access keys(access_key_id, secret_access_key) to db/api_keys.yml file. 
+
+5) This application has the following two commands 
+
+  i) ./bin/get instances  
+  Connects to the AWS API, fetches and saves Run, Cost & Utilization records in the database.
+  Run "rake jobs:work &" to start the delayed job daemon to fetch the records every hour.
+
+  ii) ./bin/get report  
+  Generates a report from the database for Cost & Utilization on Console. 
+  
+It has the following command line inputs. 
+
+    --attribute  -   Takes input as instance-id/flavor/region/user defined tags
+                         Generates a report by the input attribute. 
+
+    --end-time  -  Takes input as date in mm-dd-yyyy format                    
+                         End-time of the report 
+
+    --start-time  -  Takes date in mm-dd-yyyy format as input                  
+                          Start-time of the report
+
+    --time-period  -  Takes day, week, month as input
+                          Groups the report based on the input(day, week, month)(default: day)
+    
+    --variable  -  Takes cost, utilization as input
+                       Variable for which the report is to be generated(Cost or                  
+                       Utilization(CPU, Network)) (default: cost). 
+
+Ex: bin/get report --start-time=06-15-2009 --end-time=06-25-2012 --time-period=week --variable=cost --attribute=region
+
+For help page of this command, run: bin/get help report
+
+
+  To run the RSpec test's: rspec test
+  
+  To run the integration test's: rake features
